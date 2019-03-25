@@ -110,8 +110,16 @@ RecognitionResult DrawableSprite::recognize()
 	{
 		MultiStrokeGesture multiStrokes;
 		getMultiStrokeGesture(multiStrokes);
-		RecognitionResult result = _geoRecognizer->Multirecognize(multiStrokes, "normal");
-		log("Recognized gesture: %s, Score: %f", result.name.c_str(), result.score);
+		auto path_length = multiStrokes[0].size();
+		log("path size: %d", path_length);
+		RecognitionResult result;
+		if (path_length> 10){
+			result = _geoRecognizer->Multirecognize(multiStrokes, "normal");
+			log("Recognized gesture: %s, Score: %f", result.name.c_str(), result.score);
+		}
+		else{
+			result = RecognitionResult("nothing", 1);
+		}
 		return result;
 	}
 	return RecognitionResult("", 0);

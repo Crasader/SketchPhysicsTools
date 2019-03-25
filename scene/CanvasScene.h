@@ -116,6 +116,10 @@ public:
 	virtual void onMouseDown(cocos2d::EventMouse* event);
 
 	/**
+	* Called when mouse up, override
+	*/
+	virtual void onMouseUp(cocos2d::EventMouse* event);
+	/**
 	 * Recognize shape
 	 */
 	void recognize();

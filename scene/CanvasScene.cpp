@@ -62,9 +62,9 @@ void CanvasScene::onEnter()
 	_keyboardListener = EventListenerKeyboard::create();
 	_keyboardListener->onKeyPressed = [&](EventKeyboard::KeyCode keyCode, Event * event){
 		log("KeyPress:%d", keyCode);
+
 		if (EventKeyboard::KeyCode::KEY_ENTER == keyCode)
 		{
-			// 按下enter 开始识别
 			this->_canvasLayer->recognize();
 		}
 		else if (EventKeyboard::KeyCode::KEY_D == keyCode)
@@ -220,6 +220,11 @@ void GameCanvasLayer::onMouseDown(cocos2d::EventMouse* event)
 		return;
 	}
 	CanvasLayer::onMouseDown(event);
+}
+
+void GameCanvasLayer::onMouseUp(cocos2d::EventMouse* event){
+	CanvasLayer::onMouseUp(event);
+	this->recognize();
 }
 
 DrawableSprite* GameCanvasLayer::switchToNewDrawNode()

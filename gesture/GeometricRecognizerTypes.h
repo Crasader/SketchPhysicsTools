@@ -66,6 +66,7 @@ namespace DollarRecognizer
 			this->name = name;
 			this->score = score;
 		}
+		RecognitionResult(){}
 	};
 }
 #endif

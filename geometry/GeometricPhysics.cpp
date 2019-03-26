@@ -92,7 +92,7 @@ PhysicsBody* makePhysicsBodyAsPolygon(DrawableSprite* drawableSprite)
 	// set mass by rectangle area size
 	physicsBody->setMass((_xMax - _xMin)*(_yMax - _yMin));
 	// set linear damping
-	physicsBody->setLinearDamping(0.3f);
+	physicsBody->setLinearDamping(0.0f);
 	// set physics body mask
 	MAKE_PHYSICS_BODY_MASK(physicsBody);
 	//physicsBody->setContactTestBitmask(0xFFFFFFFF);

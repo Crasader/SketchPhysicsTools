@@ -21,6 +21,8 @@ class DrawVelocityLayer;
 #define EVENT_SIMULATE_STOP				"onSimulateStop"
 #define EVENT_TOGGLE_PHYSICS_DEBUG_MODE	"onTogglePhysicsDebugMode"
 
+#define ZERO_POINT_X 15
+#define ZERO_POINT_Y 15
 /**
  * Canvas/Game Scene
  * @see cocos2d::Scene

@@ -290,7 +290,6 @@ void GameCanvasLayer::recognize()
 		event.setUserData((void*)&rs);
 		_eventDispatcher->dispatchEvent(&event);
 	}
-
 	_currentDrawNode = switchToNewDrawNode();
 }
 
@@ -328,6 +327,17 @@ bool ToolLayer::init()
 	_labelHint->setPosition(Vec2(origin.x + _spriteAssistant->getContentSize().width / 2 + 4 * GAP,
 		origin.y + visibleSize.height - _spriteAssistant->getContentSize().height / 4 - GAP));
 	//this->addChild(_labelHint);
+
+	// add back label
+	auto _labelBack = Label::create("Back", "fonts/Marker Felt.ttf", 32, Size::ZERO, TextHAlignment::LEFT, TextVAlignment::CENTER);
+	auto backItem = MenuItemLabel::create(_labelBack, [](Ref *pSender) {
+		auto scene = SceneManager::GetMenuScene();
+		Director::getInstance()->replaceScene(scene);
+	});
+	backItem->setPosition(Vec2(visibleSize.width + origin.x - 100, origin.y + 90));
+	auto menu1 = Menu::create(backItem, nullptr);
+	menu1->setPosition(Vec2::ZERO);
+	this->addChild(menu1);
 
 	// add a "start simulate/stop simulate" icon to enter/exit the progress. it's an autorelease object
 	_menuStartSimulate = MenuItemImage::create(
@@ -554,9 +564,10 @@ bool GameLayer::onPhysicsContactBegin(const cocos2d::PhysicsContact& contact){
 	clock_t collison_time = clock();
 	auto a = contact.getShapeA()->getBody();
 	auto b = contact.getShapeB()->getBody();
+	contact.getShapeA()->setFriction(0);
+	contact.getShapeB()->setFriction(0);
 	auto duration = (double)(collison_time - _begin_move) / CLOCKS_PER_SEC;
 	if (b->isDynamic()){
-		
 		b->setLinearDamping(0.3);
 		Vec2 vec = b->getVelocity();
 		log("vel:(%f,%f)", vec.x, vec.y);
@@ -565,12 +576,9 @@ bool GameLayer::onPhysicsContactBegin(const cocos2d::PhysicsContact& contact){
 	else{
 		a->setLinearDamping(0.3);
 		Vec2 vec = a->getVelocity();
-		Vec2 vec1 = a->getPosition();
 		log("vel:(%f,%f)", vec.x, vec.y);
-		log("position:(%f,%f)", vec1.x, vec1.y);
 		_drawVelocityLayer->drawVelocityLine(vec, duration);
 	}
-
 	return true;
 }
 
@@ -580,12 +588,12 @@ bool DrawVelocityLayer::init(){
 		return false;
 	}
 	// gesture
-	_gestureBackgroundView = ui::ImageView::create("gesture_background.png");
+	_gestureBackgroundView = ui::ImageView::create("v_t_background.png");
 	_gestureBackgroundView->setContentSize(Size(450, 450));
 	_gestureBackgroundView->setScale9Enabled(true);
-	_gestureBackgroundView->setPosition(Vec2(0,  0));
+	_gestureBackgroundView->setPosition(Vec2(ZERO_POINT_X, 0));
 	addChild(_gestureBackgroundView);
-	_startDrawLineLocation = Vec2(0, 0);
+	_startDrawLineLocation = Vec2(ZERO_POINT_X, ZERO_POINT_Y);
 	log("enter velocity layer init");
 	return true;
 }
@@ -602,9 +610,9 @@ void DrawVelocityLayer::onExit(){
 
 void DrawVelocityLayer::drawVelocityLine(Vec2 velocity, double t){
 	auto absolute_velocity = sqrt(pow(velocity.x, 2) + pow(velocity.y, 2));
-	log("absolute_velocity:%f, time: %f", absolute_velocity, t * 10);
-	Vec2 currentLocation = Vec2(t * 10, absolute_velocity);
+	//log("absolute_velocity:%f, time: %f", absolute_velocity, t * 10);
+	Vec2 currentLocation = Vec2(t * 10 + ZERO_POINT_X, absolute_velocity + ZERO_POINT_Y);
 	currentDrawLine->drawLine(_startDrawLineLocation, currentLocation, currentDrawLine->getBrushColor());
 	_startDrawLineLocation = currentLocation;
-	log("start location:%f,%f ", _startDrawLineLocation.x, _startDrawLineLocation.y);
+	//log("start location:%f,%f ", _startDrawLineLocation.x, _startDrawLineLocation.y);
 }

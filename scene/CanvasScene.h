@@ -6,11 +6,13 @@
 #include "DrawableSprite.h"
 #include "geometry/recognizer/GeometricRecognizerNode.h"
 #include "geometry/handler/CommandHandler.h"
-
+#include "ui/CocosGUI.h"
+#include "time.h"
 class CanvasScene;
 class GameCanvasLayer;
 class GameLayer;
 class ToolLayer;
+class DrawVelocityLayer;
 
 // Event
 #define EVENT_RECOGNIZE_SUCCESS			"onRecognizeSuccess"
@@ -323,6 +325,48 @@ private:
 	DrawSpriteResultMap&		_drawNodeResultMap;		// DrawableSprite-RecognizedSprite map
 	GenSpriteResultMap			_genSpriteResultMap;	// DrawableSprite-Sprite map, generated sprites, with physics body
 	PostCommandHandlerFactory	_postCmdHandlers;		// post-command handlers
+	DrawVelocityLayer           * _drawVelocityLayer;
+	clock_t  _begin_move;
 };
 
+
+class DrawVelocityLayer : public CanvasLayer
+{
+public:
+	DrawVelocityLayer(){
+
+	};
+	/**
+	* Call when DrawVelocityLayer inititialized, override
+	* @see cocos2d::Node::init
+	*/
+	virtual bool init();
+
+	/**
+	* Call when DrawVelocityLayer enters the 'stage', override
+	* @see cocos2d::Node::onEnter
+	*/
+	virtual void onEnter();
+
+	/**
+	* Call when DrawVelocityLayer exits the 'stage', override
+	* @see cocos2d::Node::onEnter
+	*/
+	virtual void onExit();
+
+	DrawVelocityLayer *createVelocityLayer();
+
+	void drawVelocityLine(cocos2d::Vec2 velocity, double t);
+
+	CREATE_FUNC(DrawVelocityLayer);
+
+
+private:
+	double t;
+	bool isDrawingLine;
+	cocos2d::Vec2 velocity;
+	cocos2d::ui::ImageView *_gestureBackgroundView;
+	DrawableSprite *currentDrawLine;
+	cocos2d::Vec2 _startDrawLineLocation;
+};
 #endif // __CANVAS_SCENE_H__

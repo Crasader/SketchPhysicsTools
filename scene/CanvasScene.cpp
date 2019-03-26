@@ -1,7 +1,7 @@
 #include "CanvasScene.h"
 #include "SceneManager.h"
 #include "controller/PawnController.h"
-
+#include "math.h"
 #include "resource/Resources.h"
 #include "resource/ToolHintConstants.h"
 
@@ -15,7 +15,7 @@ JointsList	jointsList;
 namespace
 {
 	const int DRAG_BODYS_TAG = 0x80;
-	const Vec2 GRAVITY(0, -10);
+	const Vec2 GRAVITY(0, -100);
 }
 
 CanvasScene::CanvasScene()
@@ -49,7 +49,6 @@ bool CanvasScene::init()
 	_toolLayer = ToolLayer::create();
 	_toolLayer->setParentScene(this);
 	this->addChild(_toolLayer);
-
 	return true;
 }
 
@@ -101,6 +100,8 @@ void CanvasScene::startSimulate()
 {
 	_gameLayer = _canvasLayer->createGameLayer();
 	_gameLayer->setVisible(true);
+
+	
 	_canvasLayer->startGameSimulation();
 	_canvasLayer->setVisible(false);
 	_canvasLayer->stopAllActions();
@@ -122,7 +123,7 @@ void CanvasScene::stopSimulate()
 	
 	// dettach game layer
 	this->removeChild(_gameLayer);
-	
+
 	_canvasLayer->stopGameSimulation();
 }
 
@@ -423,7 +424,6 @@ void ToolLayer::startSimulateCallback(cocos2d::Ref* pSender)
 	_menuStopSimulate->setVisible(true);
 	_canvasScene->startSimulate();
 	auto physicsBody = _canvasScene->getPhysicsWorld()->getBody(RECTANGLE_TAG);
-	
 	log("speed: %d", physicsBody);
 }
 
@@ -466,6 +466,9 @@ bool GameLayer::init()
 	// init Geometric physics body collison mask
 	InitGeometricPhysicsMask();
 
+	//init drawvelocityLayer
+	_drawVelocityLayer = DrawVelocityLayer::create();
+
 	// put recognized sprite into priority queue
 	priority_queue<RecognizedSprite*, vector<RecognizedSprite*>, RecognizedSpriteLessCmp> lazyQueue;
 	for (auto p = _drawNodeResultMap.begin(); p != _drawNodeResultMap.end(); p++)
@@ -484,11 +487,20 @@ bool GameLayer::init()
 		auto cmdh = _postCmdHandlers.getCommandHandler(rs->getGeometricType());
 		if (!cmdh._Empty()) cmdh(*rs, _drawNodeList, this, &_genSpriteResultMap);
 	}
+
+	_begin_move = clock();
+	log("init time:%f", (double)_begin_move);
+	_drawVelocityLayer->setVisible(true);
+	
 	// add concat listener
 	auto contactListener = EventListenerPhysicsContact::create();
 	contactListener->onContactPreSolve = CC_CALLBACK_1(GameLayer::onPhysicsContactBegin, this);
 	_eventDispatcher->addEventListenerWithSceneGraphPriority(contactListener, this);
 
+	// add draw velocity layer
+	this->addChild(_drawVelocityLayer);
+	_drawVelocityLayer->setParent(this);
+	_drawVelocityLayer->setVisible(true);
 	log("game layer init");
 
 	return true;
@@ -521,14 +533,15 @@ void GameLayer::onEnter()
 	log("game layer on enter");
 
 	_postCmdHandlers.makeJoints(this->getScene()->getPhysicsWorld(), jointsList, _genSpriteResultMap);
-
 }
 
 void GameLayer::onExit()
 {
+	_drawVelocityLayer->setVisible(false);
 	this->stopAllActions();
 	_eventDispatcher->removeEventListenersForTarget(this);
 	Layer::onExit();
+
 }
 
 void GameLayer::recordVelocityCallBack(cocos2d::Ref* pSender)
@@ -538,23 +551,60 @@ void GameLayer::recordVelocityCallBack(cocos2d::Ref* pSender)
 
 bool GameLayer::onPhysicsContactBegin(const cocos2d::PhysicsContact& contact){
 	log("enter game layer listener:===============");
+	clock_t collison_time = clock();
 	auto a = contact.getShapeA()->getBody();
 	auto b = contact.getShapeB()->getBody();
+	auto duration = (double)(collison_time - _begin_move) / CLOCKS_PER_SEC;
 	if (b->isDynamic()){
-		b->setLinearDamping(1.0);
+		
+		b->setLinearDamping(0.3);
 		Vec2 vec = b->getVelocity();
-		Vec2 vec1 = b->getPosition();
 		log("vel:(%f,%f)", vec.x, vec.y);
-		log("position:(%f,%f)", vec1.x, vec1.y);
+		_drawVelocityLayer->drawVelocityLine(vec, duration);
 	}
 	else{
-		a->setLinearDamping(1.0);
+		a->setLinearDamping(0.3);
 		Vec2 vec = a->getVelocity();
 		Vec2 vec1 = a->getPosition();
 		log("vel:(%f,%f)", vec.x, vec.y);
 		log("position:(%f,%f)", vec1.x, vec1.y);
+		_drawVelocityLayer->drawVelocityLine(vec, duration);
 	}
-	
-	
+
 	return true;
+}
+
+bool DrawVelocityLayer::init(){
+	if (!CanvasLayer::init())
+	{
+		return false;
+	}
+	// gesture
+	_gestureBackgroundView = ui::ImageView::create("gesture_background.png");
+	_gestureBackgroundView->setContentSize(Size(450, 450));
+	_gestureBackgroundView->setScale9Enabled(true);
+	_gestureBackgroundView->setPosition(Vec2(0,  0));
+	addChild(_gestureBackgroundView);
+	_startDrawLineLocation = Vec2(0, 0);
+	log("enter velocity layer init");
+	return true;
+}
+
+void DrawVelocityLayer::onEnter(){
+	currentDrawLine = DrawableSprite::create();
+	this->addChild(currentDrawLine);
+	log("enter velocity layer");
+}
+
+void DrawVelocityLayer::onExit(){
+	log("exit velocity layer");
+}
+
+void DrawVelocityLayer::drawVelocityLine(Vec2 velocity, double t){
+	auto absolute_velocity = sqrt(pow(velocity.x, 2) + pow(velocity.y, 2));
+	log("absolute_velocity:%f, time: %f", absolute_velocity, t * 10);
+	Vec2 currentLocation = Vec2(t * 10, absolute_velocity);
+	currentDrawLine->drawLine(_startDrawLineLocation, currentLocation, currentDrawLine->getBrushColor());
+	_startDrawLineLocation = currentLocation;
+	log("start location:%f,%f ", _startDrawLineLocation.x, _startDrawLineLocation.y);
 }

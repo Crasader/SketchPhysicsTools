@@ -309,10 +309,14 @@ public:
 	 */
 	virtual void onExit();
 
+	bool onPhysicsContactBegin(const cocos2d::PhysicsContact& contact);
+
 	/**
 	 * Implement the "static create" method manually with non-empty parameters
 	 */
 	static GameLayer *GameLayer::create(list<DrawableSprite*>&, DrawSpriteResultMap&, cocos2d::Scene*);
+
+	void recordVelocityCallBack(cocos2d::Ref* pSender);
 
 private:
 	std::list<DrawableSprite*>& _drawNodeList;			// current drawn nodes 

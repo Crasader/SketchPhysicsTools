@@ -4,8 +4,8 @@
 
 USING_NS_CC;
 
-int PHYSICS_BODY_CONTACT_MASK	= 0x0001;
-int PHYSICS_BODY_CATEGORY_MASK	= 0x0001;
+int PHYSICS_BODY_CONTACT_MASK = 0xFFFFFFFF;
+int PHYSICS_BODY_CATEGORY_MASK = 0xFFFFFFFF;
 
 #define MAKE_PHYSICS_BODY_MASK(physicsBody)\
 do{\
@@ -95,7 +95,10 @@ PhysicsBody* makePhysicsBodyAsPolygon(DrawableSprite* drawableSprite)
 	physicsBody->setLinearDamping(0.3f);
 	// set physics body mask
 	MAKE_PHYSICS_BODY_MASK(physicsBody);
-
+	//physicsBody->setContactTestBitmask(0xFFFFFFFF);
+	//physicsBody->setCategoryBitmask(0xFFFFFFFF)
+	//log("MASK1:%d", PHYSICS_BODY_CONTACT_MASK);
+	//log("MASK2:%d", PHYSICS_BODY_CATEGORY_MASK);
 	return physicsBody;
 }
 
@@ -313,6 +316,6 @@ bool IsSnapedTo(DrawableSprite* a, DrawableSprite* b, float epsilon)
 void InitGeometricPhysicsMask()
 {
 	// initialize physics body mask
-	PHYSICS_BODY_CONTACT_MASK = 0x0001;
-	PHYSICS_BODY_CATEGORY_MASK = 0x0001;
+	PHYSICS_BODY_CONTACT_MASK = 0xFFFFFFFF;
+	PHYSICS_BODY_CATEGORY_MASK = 0xFFFFFFFF;
 }

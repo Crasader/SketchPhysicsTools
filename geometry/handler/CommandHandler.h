@@ -4,7 +4,8 @@
 #include "cocos2d.h"
 #include "geometry/recognizer/RecognizedSprite.h"
 #include "geometry/GeometricPhysics.h"
-
+#define TRIANGLE_TAG 0x10000
+#define RECTANGLE_TAG 0x10001
 class CommandHandlerFactory;
 class PreCommandHandlerFactory;
 class PostCommandHandlerFactory;

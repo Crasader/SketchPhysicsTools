@@ -195,7 +195,29 @@ bool PostCommandHandlerFactory::init()
 	});
 
 	// triangle, @see PostCommandHandlerFactory::handleDefault
-	this->registerCommandHandler(GT_MESH_TRIANGLE, CC_CALLBACK_4(PostCommandHandlerFactory::handleDefault, this));
+	this->registerCommandHandler(GT_MESH_TRIANGLE, [](
+		RecognizedSprite& recSprite,
+		list<DrawableSprite*>& drawNodeList,
+		Node* owner,
+		void* udata)
+	{
+		GenSpriteResultMap* rmap = static_cast<GenSpriteResultMap*>(udata);
+		RecognitionResult& result = recSprite._result;
+		DrawableSprite* ds = recSprite._drawNode;
+		Vec2 position = ds->getShapeCenter();
+		auto sprite = Sprite::createWithTexture(ds->createTexture(), ds->contentRect());
+
+		sprite->setPosition(position);
+		sprite->setFlippedY(true);
+		// attach sprite to it's parent sprite/scene
+		sprite->addComponent(makePhysicsBodyAsPolygon(ds));
+		auto pb = sprite->getPhysicsBody();
+		pb->setTag(TRIANGLE_TAG);
+		pb->setDynamic(false);
+		owner->addChild(sprite);
+		if (rmap)rmap->insert(pair<DrawableSprite*, Sprite*>(recSprite._drawNode, sprite));
+
+	});
 
 	// rectangle, @see PostCommandHandlerFactory::handleDefault
 	this->registerCommandHandler(GT_MESH_RECTANGLE, CC_CALLBACK_4(PostCommandHandlerFactory::handleDefault, this));
@@ -466,7 +488,7 @@ void handleDefaultWithPhysics(
 	sprite->setPosition(position);
 	// flip Y
 	sprite->setFlippedY(true);
-
+	sprite->setTag(RECTANGLE_TAG);
 	// if the pointer to function pfMakePhysicsBody is set,
 	// add a physics body created by pfMakePhysicsBody to sprite
 	if (pfMakePhysicsBody) sprite->addComponent(pfMakePhysicsBody(ds));

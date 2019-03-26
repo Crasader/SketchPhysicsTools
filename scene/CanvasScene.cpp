@@ -15,7 +15,7 @@ JointsList	jointsList;
 namespace
 {
 	const int DRAG_BODYS_TAG = 0x80;
-	const Vec2 GRAVITY(0, -100);
+	const Vec2 GRAVITY(0, -10);
 }
 
 CanvasScene::CanvasScene()
@@ -326,7 +326,7 @@ bool ToolLayer::init()
 	_labelHint->setAnchorPoint(Vec2(0, 0));
 	_labelHint->setPosition(Vec2(origin.x + _spriteAssistant->getContentSize().width / 2 + 4 * GAP,
 		origin.y + visibleSize.height - _spriteAssistant->getContentSize().height / 4 - GAP));
-	this->addChild(_labelHint);
+	//this->addChild(_labelHint);
 
 	// add a "start simulate/stop simulate" icon to enter/exit the progress. it's an autorelease object
 	_menuStartSimulate = MenuItemImage::create(
@@ -385,12 +385,14 @@ void ToolLayer::onEnter()
 {
 	Layer::onEnter();
 
+	/**
 	// initialize listeners
 	_recognizeSuccessListener = EventListenerCustom::create(EVENT_RECOGNIZE_SUCCESS, CC_CALLBACK_1(ToolLayer::onRecognizeSuccess, this));
 	_recognizeFailedListener = EventListenerCustom::create(EVENT_RECOGNIZE_FAILED, CC_CALLBACK_1(ToolLayer::onRecognizeFailed, this));
 
 	_eventDispatcher->addEventListenerWithSceneGraphPriority(_recognizeSuccessListener, this);
 	_eventDispatcher->addEventListenerWithSceneGraphPriority(_recognizeFailedListener, this);
+
 
 	auto _loadTemplateListener = EventListenerCustom::create(EVENT_LOADING_TEMPLATE, [&](EventCustom* event){
 		LoadTemplateData* ltd = static_cast<LoadTemplateData*>(event->getUserData());
@@ -401,9 +403,11 @@ void ToolLayer::onEnter()
 		this->_labelHint->setString(ltd->_hint.c_str());
 	});
 
+
 	// register listeners
 	_eventDispatcher->addEventListenerWithSceneGraphPriority(_loadTemplateListener, this);
 	_eventDispatcher->addEventListenerWithSceneGraphPriority(_loadedTemplateListener, this);
+	*/
 }
 
 void ToolLayer::onExit()
@@ -418,6 +422,9 @@ void ToolLayer::startSimulateCallback(cocos2d::Ref* pSender)
 	_menuStartSimulate->setVisible(false);
 	_menuStopSimulate->setVisible(true);
 	_canvasScene->startSimulate();
+	auto physicsBody = _canvasScene->getPhysicsWorld()->getBody(RECTANGLE_TAG);
+	
+	log("speed: %d", physicsBody);
 }
 
 
@@ -426,6 +433,7 @@ void ToolLayer::stopSimulateCallback(cocos2d::Ref* pSender)
 	_menuStartSimulate->setVisible(true);
 	_menuStopSimulate->setVisible(false);
 	_canvasScene->stopSimulate();
+
 }
 
 void ToolLayer::startJointModeCallback(cocos2d::Ref* pSender)
@@ -476,6 +484,10 @@ bool GameLayer::init()
 		auto cmdh = _postCmdHandlers.getCommandHandler(rs->getGeometricType());
 		if (!cmdh._Empty()) cmdh(*rs, _drawNodeList, this, &_genSpriteResultMap);
 	}
+	// add concat listener
+	auto contactListener = EventListenerPhysicsContact::create();
+	contactListener->onContactPreSolve = CC_CALLBACK_1(GameLayer::onPhysicsContactBegin, this);
+	_eventDispatcher->addEventListenerWithSceneGraphPriority(contactListener, this);
 
 	log("game layer init");
 
@@ -509,6 +521,7 @@ void GameLayer::onEnter()
 	log("game layer on enter");
 
 	_postCmdHandlers.makeJoints(this->getScene()->getPhysicsWorld(), jointsList, _genSpriteResultMap);
+
 }
 
 void GameLayer::onExit()
@@ -516,4 +529,32 @@ void GameLayer::onExit()
 	this->stopAllActions();
 	_eventDispatcher->removeEventListenersForTarget(this);
 	Layer::onExit();
+}
+
+void GameLayer::recordVelocityCallBack(cocos2d::Ref* pSender)
+{
+	log("nothing");
+}
+
+bool GameLayer::onPhysicsContactBegin(const cocos2d::PhysicsContact& contact){
+	log("enter game layer listener:===============");
+	auto a = contact.getShapeA()->getBody();
+	auto b = contact.getShapeB()->getBody();
+	if (b->isDynamic()){
+		b->setLinearDamping(1.0);
+		Vec2 vec = b->getVelocity();
+		Vec2 vec1 = b->getPosition();
+		log("vel:(%f,%f)", vec.x, vec.y);
+		log("position:(%f,%f)", vec1.x, vec1.y);
+	}
+	else{
+		a->setLinearDamping(1.0);
+		Vec2 vec = a->getVelocity();
+		Vec2 vec1 = a->getPosition();
+		log("vel:(%f,%f)", vec.x, vec.y);
+		log("position:(%f,%f)", vec1.x, vec1.y);
+	}
+	
+	
+	return true;
 }

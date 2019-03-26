@@ -683,23 +683,23 @@ void GameLayer::initVelocityForPhysicsBody(){
 			log("x_size: %d, y_size:%d", x_size, y_size);
 			if (x_size > 0 && y_size > 0){
 				if (index < x_size && index < y_size){
-					cur->setVelocity(Vec2(0 - init_v_x.at(index), 0 - init_v_y.at(index)));
+					cur->setVelocity(Vec2(init_v_x.at(index), 0 - init_v_y.at(index)));
 				}
 				else if (index <x_size && index >= y_size){
-					cur->setVelocity(Vec2(0 - init_v_x.at(index),0 - init_v_y.at(y_size - 1)));
+					cur->setVelocity(Vec2(init_v_x.at(index),0 - init_v_y.at(y_size - 1)));
 				}
 				else if (index >= x_size && index < y_size){
-					cur->setVelocity(Vec2(0 - init_v_x.at(x_size - 1), 0 - init_v_y.at(index)));
+					cur->setVelocity(Vec2(init_v_x.at(x_size - 1), 0 - init_v_y.at(index)));
 				}
 				else{
-					cur->setVelocity(Vec2(0 - init_v_x.at(x_size - 1), 0 - init_v_y.at(y_size - 1)));
+					cur->setVelocity(Vec2(init_v_x.at(x_size - 1), 0 - init_v_y.at(y_size - 1)));
 				}
 			}
 			else if (x_size == 0 && y_size > 0){
 				cur->setVelocity(Vec2(0,0 - init_v_y.at(y_size - 1)));
 			}
 			else if (y_size == 0 && x_size > 0){
-				cur->setVelocity(Vec2(0 - init_v_x.at(index), 0));
+				cur->setVelocity(Vec2(init_v_x.at(index), 0));
 			}
 			else {
 				cur->setVelocity(Vec2(0, 0));

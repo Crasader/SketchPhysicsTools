@@ -313,6 +313,8 @@ public:
 	 */
 	virtual void onExit();
 
+	//void onAcceleration(Acceleration* acc, Event* event);
+
 	bool onPhysicsContactBegin(const cocos2d::PhysicsContact& contact);
 
 	/**
@@ -321,6 +323,8 @@ public:
 	static GameLayer *GameLayer::create(list<DrawableSprite*>&, DrawSpriteResultMap&, cocos2d::Scene*);
 
 	void recordVelocityCallBack(cocos2d::Ref* pSender);
+
+	void updateVelocityText(float t);
 
 private:
 	std::list<DrawableSprite*>& _drawNodeList;			// current drawn nodes 
@@ -358,7 +362,7 @@ public:
 
 	DrawVelocityLayer *createVelocityLayer();
 
-	void drawVelocityLine(cocos2d::Vec2 velocity, double t);
+	void drawVelocityLine(cocos2d::Vec2 velocity, double t, int index);
 
 	CREATE_FUNC(DrawVelocityLayer);
 
@@ -370,5 +374,6 @@ private:
 	cocos2d::ui::ImageView *_gestureBackgroundView;
 	DrawableSprite *currentDrawLine;
 	cocos2d::Vec2 _startDrawLineLocation;
+	std::map<int, cocos2d::Vec2> _startDrawLineMap;
 };
 #endif // __CANVAS_SCENE_H__

@@ -469,10 +469,10 @@ bool GameLayer::init()
 	{
 		return false;
 	}
-	
+
 	// init post-command handler
 	_postCmdHandlers.init();
-	
+
 	// init Geometric physics body collison mask
 	InitGeometricPhysicsMask();
 
@@ -501,7 +501,7 @@ bool GameLayer::init()
 	_begin_move = clock();
 	log("init time:%f", (double)_begin_move);
 	_drawVelocityLayer->setVisible(true);
-	
+
 	// add concat listener
 	auto contactListener = EventListenerPhysicsContact::create();
 	contactListener->onContactPreSolve = CC_CALLBACK_1(GameLayer::onPhysicsContactBegin, this);
@@ -533,16 +533,41 @@ GameLayer *GameLayer::create(list<DrawableSprite*>& drawNodeList, DrawSpriteResu
 }
 
 GameLayer::GameLayer(list<DrawableSprite*>& drawNodeList, DrawSpriteResultMap& drawNodeResultMap)
-:_drawNodeList(drawNodeList)
-, _drawNodeResultMap(drawNodeResultMap)
+	:_drawNodeList(drawNodeList)
+	, _drawNodeResultMap(drawNodeResultMap)
 {}
 
 void GameLayer::onEnter()
 {
 	Layer::onEnter();
 	log("game layer on enter");
-
+	/**
+	Device::setAccelerometerEnabled(true);//打开设备的重力感应
+	auto listener = EventListenerAcceleration::create(CC_CALLBACK_2(GameLayer::onAcceleration, this));//创建一个重力监听事件
+	_eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);//将listener放到事件委托中
+	*/
+	this->schedule(schedule_selector(GameLayer::updateVelocityText), 0.1);
 	_postCmdHandlers.makeJoints(this->getScene()->getPhysicsWorld(), jointsList, _genSpriteResultMap);
+}
+
+void GameLayer::updateVelocityText(float t)
+{
+	clock_t now = clock();
+	auto duration = (double)(now - _begin_move) / CLOCKS_PER_SEC;
+	int index = 0;
+	for (auto i = _genSpriteResultMap.begin(); i != _genSpriteResultMap.end(); i++)
+		{
+			
+			auto sprite = i->second;
+			auto cur = sprite->getPhysicsBody();
+			Vec2 vec = cur->getVelocity();
+			if (cur->isDynamic()){
+				log("get Tag:%d", cur->getTag());
+				log("body:%f, %f", vec.x, vec.y);
+				_drawVelocityLayer->drawVelocityLine(vec, duration, index);
+				index++;
+			}		
+		}
 }
 
 void GameLayer::onExit()
@@ -564,20 +589,20 @@ bool GameLayer::onPhysicsContactBegin(const cocos2d::PhysicsContact& contact){
 	clock_t collison_time = clock();
 	auto a = contact.getShapeA()->getBody();
 	auto b = contact.getShapeB()->getBody();
-	contact.getShapeA()->setFriction(0);
-	contact.getShapeB()->setFriction(0);
+	contact.getShapeA()->setFriction(0.5);
+	contact.getShapeB()->setFriction(0.5);
 	auto duration = (double)(collison_time - _begin_move) / CLOCKS_PER_SEC;
 	if (b->isDynamic()){
-		b->setLinearDamping(0.3);
 		Vec2 vec = b->getVelocity();
 		log("vel:(%f,%f)", vec.x, vec.y);
-		_drawVelocityLayer->drawVelocityLine(vec, duration);
+		log("tag 1:%d", b->getTag());
+		//_drawVelocityLayer->drawVelocityLine(vec, duration, 0);
 	}
 	else{
-		a->setLinearDamping(0.3);
 		Vec2 vec = a->getVelocity();
-		log("vel:(%f,%f)", vec.x, vec.y);
-		_drawVelocityLayer->drawVelocityLine(vec, duration);
+		log("vel:(%f,%f)", vec.x, vec.y); 
+		log("tag 1:%d", b->getTag());
+		//_drawVelocityLayer->drawVelocityLine(vec, duration, 0);
 	}
 	return true;
 }
@@ -608,11 +633,20 @@ void DrawVelocityLayer::onExit(){
 	log("exit velocity layer");
 }
 
-void DrawVelocityLayer::drawVelocityLine(Vec2 velocity, double t){
+void DrawVelocityLayer::drawVelocityLine(Vec2 velocity, double t, int index){
 	auto absolute_velocity = sqrt(pow(velocity.x, 2) + pow(velocity.y, 2));
-	//log("absolute_velocity:%f, time: %f", absolute_velocity, t * 10);
+	auto value = _startDrawLineMap.find(index);
 	Vec2 currentLocation = Vec2(t * 10 + ZERO_POINT_X, absolute_velocity + ZERO_POINT_Y);
-	currentDrawLine->drawLine(_startDrawLineLocation, currentLocation, currentDrawLine->getBrushColor());
-	_startDrawLineLocation = currentLocation;
+	if (value != _startDrawLineMap.end()){
+		auto startDrawLineLocation = _startDrawLineMap.find(index)->second;
+		currentDrawLine->drawLine(startDrawLineLocation, currentLocation, currentDrawLine->getBrushColor());
+		_startDrawLineMap.erase(value);	
+	}
+	else{
+		currentDrawLine->drawLine(_startDrawLineLocation, currentLocation, currentDrawLine->getBrushColor());
+	}
+	_startDrawLineMap[index] = currentLocation;
+	
+	log("absolute_velocity:%f, time: %f", absolute_velocity, t * 10);
 	//log("start location:%f,%f ", _startDrawLineLocation.x, _startDrawLineLocation.y);
 }

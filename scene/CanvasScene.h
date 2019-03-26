@@ -262,6 +262,22 @@ public:
 	 */
 	void onRecognizeFailed(cocos2d::EventCustom* event);
 
+	void InputVxEvent(Ref *pSender, cocos2d::ui::TextField::EventType type);
+
+	void InputVyEvent(Ref *pSender, cocos2d::ui::TextField::EventType type);
+
+	void InputFrictionEvent(Ref *pSender, cocos2d::ui::TextField::EventType type);
+
+	vector<string> split_string(string strtem, char a);
+
+	void change_input_to_array(std::string v_x, vector<double> &output_vector);
+
+	std::vector<double> init_v_x;
+	std::vector<double> init_v_y;
+	std::vector<double> init_friction;
+
+
+
 private:
 	cocos2d::EventListenerCustom*	_recognizeSuccessListener;	// recognize success listener
 	cocos2d::EventListenerCustom*	_recognizeFailedListener;	// recognize failed listener
@@ -273,8 +289,12 @@ private:
 	cocos2d::MenuItemImage*			_menuStartJoint;			// start joint mode menu, not used now
 	cocos2d::MenuItemImage*			_menuStopJoint;				// start joint mode menu, not used now
 	cocos2d::MenuItemImage*			_menuStartDebug;			// start debug mode menu
-
+	
 	CanvasScene*					_canvasScene;				// parent scene	
+	cocos2d::ui::TextField* _VxField;
+	cocos2d::ui::TextField* _VyField;
+	cocos2d::ui::TextField* _FrictionField;
+
 };
 
 
@@ -326,6 +346,12 @@ public:
 
 	void updateVelocityText(float t);
 
+	std::vector<double> init_v_x;
+	std::vector<double> init_v_y;
+	std::vector<double> init_friction;
+
+	void initVelocityForPhysicsBody();
+
 private:
 	std::list<DrawableSprite*>& _drawNodeList;			// current drawn nodes 
 	DrawSpriteResultMap&		_drawNodeResultMap;		// DrawableSprite-RecognizedSprite map
@@ -376,4 +402,14 @@ private:
 	cocos2d::Vec2 _startDrawLineLocation;
 	std::map<int, cocos2d::Vec2> _startDrawLineMap;
 };
+
+template <class Type>
+Type stringToNum(const string& str)
+{
+	istringstream iss(str);
+	Type num;
+	iss >> num;
+	return num;
+}
+
 #endif // __CANVAS_SCENE_H__

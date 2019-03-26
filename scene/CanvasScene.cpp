@@ -101,7 +101,12 @@ void CanvasScene::startSimulate()
 	_gameLayer = _canvasLayer->createGameLayer();
 	_gameLayer->setVisible(true);
 
-	
+	_gameLayer->init_v_x = _toolLayer->init_v_x;
+	_gameLayer->init_v_y = _toolLayer->init_v_y;
+	_gameLayer->init_friction = _toolLayer->init_friction;
+
+	_gameLayer->initVelocityForPhysicsBody();
+	log("game layer simluation: %d, %d", _gameLayer->init_friction.size(), _toolLayer->init_friction.size());
 	_canvasLayer->startGameSimulation();
 	_canvasLayer->setVisible(false);
 	_canvasLayer->stopAllActions();
@@ -117,7 +122,10 @@ void CanvasScene::stopSimulate()
 	
 	// stop all actions/animations
 	_gameLayer->stopAllActions();
-	
+	_gameLayer->init_v_x.clear();
+	_gameLayer->init_v_y.clear();
+	_gameLayer->init_friction.clear();
+
 	// turn off debug view
 	if (this->_debugDraw){ _physicsWorld->setDebugDrawMask(PhysicsWorld::DEBUGDRAW_NONE); }
 	
@@ -322,11 +330,35 @@ bool ToolLayer::init()
 	this->addChild(_spriteAssistant);
 
 	// hint label
+	/**
 	_labelHint = Label::create(TOOL_HINT_WELCOME, DEFAULT_FONT, 24, Size::ZERO, TextHAlignment::LEFT, TextVAlignment::CENTER);
 	_labelHint->setAnchorPoint(Vec2(0, 0));
 	_labelHint->setPosition(Vec2(origin.x + _spriteAssistant->getContentSize().width / 2 + 4 * GAP,
 		origin.y + visibleSize.height - _spriteAssistant->getContentSize().height / 4 - GAP));
+		*/
 	//this->addChild(_labelHint);
+
+	// input v_x
+	auto _VxField = cocos2d::ui::TextField::create("Vx:0", DEFAULT_FONT, 24);
+	_VxField->setPosition(Vec2(origin.x + _spriteAssistant->getContentSize().width / 2 + 4 * GAP,
+		origin.y + visibleSize.height - _spriteAssistant->getContentSize().height / 4 - GAP));
+	_VxField->addEventListener(CC_CALLBACK_2(ToolLayer::InputVxEvent, this));
+	this->addChild(_VxField);
+
+	// input v_y
+	auto _VyField = cocos2d::ui::TextField::create("Vy:0", DEFAULT_FONT, 24);
+	_VyField->setPosition(Vec2(origin.x + _spriteAssistant->getContentSize().width / 2 + 10 * GAP,
+		origin.y + visibleSize.height - _spriteAssistant->getContentSize().height / 4 - GAP));
+	_VyField->addEventListener(CC_CALLBACK_2(ToolLayer::InputVyEvent, this));
+	this->addChild(_VyField);
+
+	// input friction
+	_FrictionField = cocos2d::ui::TextField::create("Friction:0", DEFAULT_FONT, 24);
+	_FrictionField->setPosition(Vec2(origin.x + _spriteAssistant->getContentSize().width / 2 + 16 * GAP,
+		origin.y + visibleSize.height - _spriteAssistant->getContentSize().height / 4 - GAP));
+	_FrictionField->addEventListener(CC_CALLBACK_2(ToolLayer::InputFrictionEvent, this));
+	this->addChild(_FrictionField);
+
 
 	// add back label
 	auto _labelBack = Label::create("Back", "fonts/Marker Felt.ttf", 32, Size::ZERO, TextHAlignment::LEFT, TextVAlignment::CENTER);
@@ -433,8 +465,7 @@ void ToolLayer::startSimulateCallback(cocos2d::Ref* pSender)
 	_menuStartSimulate->setVisible(false);
 	_menuStopSimulate->setVisible(true);
 	_canvasScene->startSimulate();
-	auto physicsBody = _canvasScene->getPhysicsWorld()->getBody(RECTANGLE_TAG);
-	log("speed: %d", physicsBody);
+	
 }
 
 
@@ -444,6 +475,11 @@ void ToolLayer::stopSimulateCallback(cocos2d::Ref* pSender)
 	_menuStopSimulate->setVisible(false);
 	_canvasScene->stopSimulate();
 
+	/**
+	this->init_v_x.clear();
+	this->init_v_y.clear();
+	this->init_friction.clear();
+	*/
 }
 
 void ToolLayer::startJointModeCallback(cocos2d::Ref* pSender)
@@ -461,6 +497,89 @@ void ToolLayer::stopJointModeCallback(cocos2d::Ref* pSender)
 void ToolLayer::toggleDebugMode(bool isDebug)
 {
 	_menuStartDebug->setVisible(isDebug);
+}
+
+void ToolLayer::InputVxEvent(Ref *pSender, cocos2d::ui::TextField::EventType type){
+	cocos2d::ui::TextField* textField1 = dynamic_cast<cocos2d::ui::TextField*>(pSender);
+	std::string v_x;
+	
+	switch (type)
+	{
+	case cocos2d::ui::TextField::EventType::ATTACH_WITH_IME:
+		break;
+	case cocos2d::ui::TextField::EventType::DETACH_WITH_IME:
+		init_v_x.clear();
+		this->change_input_to_array(textField1->getString(), init_v_x);
+		break;
+	case cocos2d::ui::TextField::EventType::INSERT_TEXT:
+		break;
+	case cocos2d::ui::TextField::EventType::DELETE_BACKWARD:
+		break;
+	default:
+		break;
+	}
+}
+void ToolLayer::InputVyEvent(Ref *pSender, cocos2d::ui::TextField::EventType type){
+	cocos2d::ui::TextField* textField2 = dynamic_cast<cocos2d::ui::TextField*>(pSender);
+	switch (type)
+	{
+	case cocos2d::ui::TextField::EventType::ATTACH_WITH_IME:
+		break;
+	case cocos2d::ui::TextField::EventType::DETACH_WITH_IME:
+		
+		log("Vy: %s", textField2->getString());
+		init_v_y.clear();
+		this->change_input_to_array(textField2->getString(), init_v_y);
+		break;
+	case cocos2d::ui::TextField::EventType::INSERT_TEXT:
+		break;
+	case cocos2d::ui::TextField::EventType::DELETE_BACKWARD:
+		break;
+	default:
+		break;
+	}
+}
+void ToolLayer::InputFrictionEvent(Ref *pSender, cocos2d::ui::TextField::EventType type){
+	cocos2d::ui::TextField* textField3 = dynamic_cast<cocos2d::ui::TextField*>(pSender);
+	switch (type)
+	{
+	case cocos2d::ui::TextField::EventType::ATTACH_WITH_IME:
+		break;
+	case cocos2d::ui::TextField::EventType::DETACH_WITH_IME:
+		init_friction.clear();
+		this->change_input_to_array(textField3->getString(), init_friction);
+		log("Friction: %d", init_friction.size());
+		break;
+	case cocos2d::ui::TextField::EventType::INSERT_TEXT:
+		break;
+	case cocos2d::ui::TextField::EventType::DELETE_BACKWARD:
+		break;
+	default:
+		break;
+	}
+}
+
+void ToolLayer::change_input_to_array(std::string v_x, vector<double> &output_vector){
+	vector<string> v_x_array;
+	v_x_array = this->split_string(v_x, ';');
+	for (int i = 0; i < v_x_array.size(); i++){
+		output_vector.push_back(stringToNum<double>(v_x_array.at(i)));
+	}
+}
+
+vector<string> ToolLayer::split_string(string strtem, char a){
+	vector<string> strvec;
+	string::size_type pos1, pos2;
+	pos2 = strtem.find(a);
+	pos1 = 0;
+	while (string::npos != pos2)
+	{
+		strvec.push_back(strtem.substr(pos1, pos2 - pos1));
+		pos1 = pos2 + 1;
+		pos2 = strtem.find(a, pos1);
+	}
+	strvec.push_back(strtem.substr(pos1));
+	return strvec;
 }
 
 bool GameLayer::init()
@@ -550,6 +669,46 @@ void GameLayer::onEnter()
 	_postCmdHandlers.makeJoints(this->getScene()->getPhysicsWorld(), jointsList, _genSpriteResultMap);
 }
 
+void GameLayer::initVelocityForPhysicsBody(){
+	int index = 0;
+	for (auto i = _genSpriteResultMap.begin(); i != _genSpriteResultMap.end(); i++)
+	{
+		auto sprite = i->second;
+		auto cur = sprite->getPhysicsBody();
+
+		if (cur->isDynamic()) {
+
+			int x_size = init_v_x.size();
+			int y_size = init_v_y.size();
+			log("x_size: %d, y_size:%d", x_size, y_size);
+			if (x_size > 0 && y_size > 0){
+				if (index < x_size && index < y_size){
+					cur->setVelocity(Vec2(0 - init_v_x.at(index), 0 - init_v_y.at(index)));
+				}
+				else if (index <x_size && index >= y_size){
+					cur->setVelocity(Vec2(0 - init_v_x.at(index),0 - init_v_y.at(y_size - 1)));
+				}
+				else if (index >= x_size && index < y_size){
+					cur->setVelocity(Vec2(0 - init_v_x.at(x_size - 1), 0 - init_v_y.at(index)));
+				}
+				else{
+					cur->setVelocity(Vec2(0 - init_v_x.at(x_size - 1), 0 - init_v_y.at(y_size - 1)));
+				}
+			}
+			else if (x_size == 0 && y_size > 0){
+				cur->setVelocity(Vec2(0,0 - init_v_y.at(y_size - 1)));
+			}
+			else if (y_size == 0 && x_size > 0){
+				cur->setVelocity(Vec2(0 - init_v_x.at(index), 0));
+			}
+			else {
+				cur->setVelocity(Vec2(0, 0));
+			}
+			
+			index++;
+		}
+	}
+}
 void GameLayer::updateVelocityText(float t)
 {
 	clock_t now = clock();
@@ -557,13 +716,10 @@ void GameLayer::updateVelocityText(float t)
 	int index = 0;
 	for (auto i = _genSpriteResultMap.begin(); i != _genSpriteResultMap.end(); i++)
 		{
-			
 			auto sprite = i->second;
 			auto cur = sprite->getPhysicsBody();
 			Vec2 vec = cur->getVelocity();
 			if (cur->isDynamic()){
-				log("get Tag:%d", cur->getTag());
-				log("body:%f, %f", vec.x, vec.y);
 				_drawVelocityLayer->drawVelocityLine(vec, duration, index);
 				index++;
 			}		
@@ -589,8 +745,18 @@ bool GameLayer::onPhysicsContactBegin(const cocos2d::PhysicsContact& contact){
 	clock_t collison_time = clock();
 	auto a = contact.getShapeA()->getBody();
 	auto b = contact.getShapeB()->getBody();
-	contact.getShapeA()->setFriction(0.5);
-	contact.getShapeB()->setFriction(0.5);
+	if (init_friction.size() > 0){
+		double friction = init_friction[0];
+		log("raw friction:%f", friction);
+		contact.getShapeA()->setFriction(friction);
+		contact.getShapeB()->setFriction(friction);
+	}
+	else{
+		contact.getShapeA()->setFriction(0);
+		contact.getShapeB()->setFriction(0);
+	}
+	
+	log("tag 1:%f", contact.getShapeA()->getFriction());
 	auto duration = (double)(collison_time - _begin_move) / CLOCKS_PER_SEC;
 	if (b->isDynamic()){
 		Vec2 vec = b->getVelocity();

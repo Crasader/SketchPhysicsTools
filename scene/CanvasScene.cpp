@@ -779,7 +779,7 @@ void GameLayer::initVelocityForPhysicsBody(){
 					point = Vec2(init_v_x.at(index), 0);
 				}
 				else{
-					point = Vec2(init_v_x.at(y_size - 1), 0);
+					point = Vec2(init_v_x.at(x_size - 1), 0);
 				}
 			}
 			else {
@@ -836,7 +836,7 @@ void GameLayer::initForceForPhysicsBody(){
 					point = Vec2(init_f_x.at(index), 0);
 				}
 				else{
-					point = Vec2(init_f_x.at(y_size - 1), 0);
+					point = Vec2(init_f_x.at(x_size - 1), 0);
 				}
 				
 			}

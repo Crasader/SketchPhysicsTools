@@ -105,7 +105,11 @@ void CanvasScene::startSimulate()
 	_gameLayer->init_v_y = _toolLayer->init_v_y;
 	_gameLayer->init_friction = _toolLayer->init_friction;
 
+	_gameLayer->init_f_x = _toolLayer->init_f_x;
+	_gameLayer->init_f_y = _toolLayer->init_f_y;
 	_gameLayer->initVelocityForPhysicsBody();
+	_gameLayer->initForceForPhysicsBody();
+	//_toolLayer->updateTextFieldState(false);
 	log("game layer simluation: %d, %d", _gameLayer->init_friction.size(), _toolLayer->init_friction.size());
 	_canvasLayer->startGameSimulation();
 	_canvasLayer->setVisible(false);
@@ -127,7 +131,9 @@ void CanvasScene::stopSimulate()
 	_gameLayer->init_v_x.clear();
 	_gameLayer->init_v_y.clear();
 	_gameLayer->init_friction.clear();
-
+	_gameLayer->init_f_x.clear();
+	_gameLayer->init_f_y.clear();
+	//_toolLayer->updateTextFieldState(true);
 	// turn off debug view
 	if (this->_debugDraw){ _physicsWorld->setDebugDrawMask(PhysicsWorld::DEBUGDRAW_NONE); }
 	
@@ -361,6 +367,20 @@ bool ToolLayer::init()
 	_FrictionField->addEventListener(CC_CALLBACK_2(ToolLayer::InputFrictionEvent, this));
 	this->addChild(_FrictionField);
 
+	// input f_x
+	_FxField = cocos2d::ui::TextField::create("Fx:0", DEFAULT_FONT, 24);
+	_FxField->setPosition(Vec2(origin.x + _spriteAssistant->getContentSize().width / 2 + 22 * GAP,
+		origin.y + visibleSize.height - _spriteAssistant->getContentSize().height / 4 - GAP));
+	_FxField->addEventListener(CC_CALLBACK_2(ToolLayer::InputFxEvent, this));
+	this->addChild(_FxField);
+
+	// input f_y
+	_FyField = cocos2d::ui::TextField::create("Fy:0", DEFAULT_FONT, 24);
+	_FyField->setPosition(Vec2(origin.x + _spriteAssistant->getContentSize().width / 2 + 28 * GAP,
+		origin.y + visibleSize.height - _spriteAssistant->getContentSize().height / 4 - GAP));
+	_FyField->addEventListener(CC_CALLBACK_2(ToolLayer::InputFyEvent, this));
+	this->addChild(_FyField);
+
 
 	// add back label
 	auto _labelBack = Label::create("Back", "fonts/Marker Felt.ttf", 32, Size::ZERO, TextHAlignment::LEFT, TextVAlignment::CENTER);
@@ -528,7 +548,6 @@ void ToolLayer::InputVyEvent(Ref *pSender, cocos2d::ui::TextField::EventType typ
 	case cocos2d::ui::TextField::EventType::ATTACH_WITH_IME:
 		break;
 	case cocos2d::ui::TextField::EventType::DETACH_WITH_IME:
-		
 		log("Vy: %s", textField2->getString());
 		init_v_y.clear();
 		this->change_input_to_array(textField2->getString(), init_v_y);
@@ -551,6 +570,45 @@ void ToolLayer::InputFrictionEvent(Ref *pSender, cocos2d::ui::TextField::EventTy
 		init_friction.clear();
 		this->change_input_to_array(textField3->getString(), init_friction);
 		log("Friction: %d", init_friction.size());
+		break;
+	case cocos2d::ui::TextField::EventType::INSERT_TEXT:
+		break;
+	case cocos2d::ui::TextField::EventType::DELETE_BACKWARD:
+		break;
+	default:
+		break;
+	}
+}
+
+
+void ToolLayer::InputFxEvent(Ref *pSender, cocos2d::ui::TextField::EventType type){
+	cocos2d::ui::TextField* textField4 = dynamic_cast<cocos2d::ui::TextField*>(pSender);
+	switch (type)
+	{
+	case cocos2d::ui::TextField::EventType::ATTACH_WITH_IME:
+		break;
+	case cocos2d::ui::TextField::EventType::DETACH_WITH_IME:
+		init_f_x.clear();
+		this->change_input_to_array(textField4->getString(), init_f_x);
+		break;
+	case cocos2d::ui::TextField::EventType::INSERT_TEXT:
+		break;
+	case cocos2d::ui::TextField::EventType::DELETE_BACKWARD:
+		break;
+	default:
+		break;
+	}
+}
+
+void ToolLayer::InputFyEvent(Ref *pSender, cocos2d::ui::TextField::EventType type){
+	cocos2d::ui::TextField* textField5 = dynamic_cast<cocos2d::ui::TextField*>(pSender);
+	switch (type)
+	{
+	case cocos2d::ui::TextField::EventType::ATTACH_WITH_IME:
+		break;
+	case cocos2d::ui::TextField::EventType::DETACH_WITH_IME:
+		init_f_y.clear();
+		this->change_input_to_array(textField5->getString(), init_f_y);
 		break;
 	case cocos2d::ui::TextField::EventType::INSERT_TEXT:
 		break;
@@ -630,8 +688,10 @@ bool GameLayer::init()
 	this->addChild(_drawVelocityLayer);
 	_drawVelocityLayer->setParent(this);
 	_drawVelocityLayer->setVisible(true);
-	log("game layer init");
 
+	
+
+	log("game layer init");
 	return true;
 }
 
@@ -665,7 +725,19 @@ void GameLayer::onEnter()
 	auto listener = EventListenerAcceleration::create(CC_CALLBACK_2(GameLayer::onAcceleration, this));//创建一个重力监听事件
 	_eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);//将listener放到事件委托中
 	*/
-	this->schedule(schedule_selector(GameLayer::updateVelocityText), 0.1);
+	_gamekeyboardListener = EventListenerKeyboard::create();
+	_gamekeyboardListener->onKeyPressed = [&](EventKeyboard::KeyCode keyCode, Event * event){
+		if (EventKeyboard::KeyCode::KEY_F == keyCode)
+		{
+			this->freePhysicsWorld();
+		}
+		else if (EventKeyboard::KeyCode::KEY_D == keyCode){
+			this->nofreePhysicsWorld();
+		}
+	};
+	_eventDispatcher->addEventListenerWithSceneGraphPriority(_gamekeyboardListener, this);
+	this->schedule(schedule_selector(GameLayer::updateVelocityText), 0.04);
+	this->getScene()->getPhysicsWorld()->setGravity(GRAVITY);
 	_postCmdHandlers.makeJoints(this->getScene()->getPhysicsWorld(), jointsList, _genSpriteResultMap);
 }
 
@@ -695,10 +767,20 @@ void GameLayer::initVelocityForPhysicsBody(){
 				}
 			}
 			else if (x_size == 0 && y_size > 0){
-				point = Vec2(0, 0 - init_v_y.at(y_size - 1));
+				if (index < y_size){
+					point = Vec2(0, 0 - init_v_y.at(index));
+				}
+				else{
+					point = Vec2(0, 0 - init_v_y.at(y_size - 1));
+				}
 			}
 			else if (y_size == 0 && x_size > 0){
-				point = Vec2(init_v_x.at(index), 0);
+				if (index < x_size){
+					point = Vec2(init_v_x.at(index), 0);
+				}
+				else{
+					point = Vec2(init_v_x.at(y_size - 1), 0);
+				}
 			}
 			else {
 				point = Vec2(0, 0);
@@ -714,6 +796,109 @@ void GameLayer::initVelocityForPhysicsBody(){
 		}
 	}
 }
+
+void GameLayer::initForceForPhysicsBody(){
+	int index = 0;
+	for (auto i = _genSpriteResultMap.begin(); i != _genSpriteResultMap.end(); i++)
+	{
+		auto sprite = i->second;
+		auto cur = sprite->getPhysicsBody();
+		Vec2 point;
+		if (cur->isDynamic()) {
+			int x_size = this->init_f_x.size();
+			int y_size = this->init_f_y.size();
+			log("x_size: %d, y_size:%d", x_size, y_size);
+			if (x_size > 0 && y_size > 0){
+				if (index < x_size && index < y_size){
+					point = Vec2(init_f_x.at(index), 0 - init_f_y.at(index));
+				}
+				else if (index <x_size && index >= y_size){
+					point = Vec2(init_f_x.at(index), 0 - init_f_y.at(y_size - 1));
+				}
+				else if (index >= x_size && index < y_size){
+					point = Vec2(init_f_x.at(x_size - 1), 0 - init_f_y.at(index));
+				}
+				else{
+					point = Vec2(init_f_x.at(x_size - 1), 0 - init_f_y.at(y_size - 1));
+				}
+			}
+			else if (x_size == 0 && y_size > 0){
+				if (index < y_size){
+					point = Vec2(0, 0 - init_f_y.at(index));
+				}
+				else{
+					point = Vec2(0, 0 - init_f_y.at(y_size - 1));
+				}
+				
+			}
+			else if (y_size == 0 && x_size > 0){
+				if (index < x_size){
+					point = Vec2(init_f_x.at(index), 0);
+				}
+				else{
+					point = Vec2(init_f_x.at(y_size - 1), 0);
+				}
+				
+			}
+			else {
+				point = Vec2(0, 0);
+			}
+
+			point.x = point.x * 10;
+			point.y = point.y * 10;
+			cur->applyForce(Vec2(point));
+			index++;
+		}
+	}
+}
+void GameLayer::freePhysicsWorld(){
+	log("free world");
+	auto index = 0;
+	auto gravity = this->getScene()->getPhysicsWorld()->getGravity();
+
+	if (gravity != Vec2(0, 0)){
+		this->getScene()->getPhysicsWorld()->setGravity(Vec2(0, 0));
+		for (auto i = _genSpriteResultMap.begin(); i != _genSpriteResultMap.end(); i++)
+		{
+			auto sprite = i->second;
+			auto cur = sprite->getPhysicsBody();
+			Vec2 vec = cur->getVelocity();
+			this->currentLocationMap[index] = vec;
+			if (cur->isDynamic()){
+				cur->setVelocity(Vec2(0, 0));
+				cur->setAngularVelocity(0);
+				index++;
+			}
+		}
+		this->begin_free_time = clock();
+	}
+	
+}
+
+void GameLayer::nofreePhysicsWorld() {
+	log("unfree world");
+	auto gravity = this->getScene()->getPhysicsWorld()->getGravity();
+	if (gravity == Vec2(0, 0)){
+		this->getScene()->getPhysicsWorld()->setGravity(GRAVITY);
+		int index = 0;
+		for (auto i = _genSpriteResultMap.begin(); i != _genSpriteResultMap.end(); i++)
+		{
+			auto sprite = i->second;
+			auto cur = sprite->getPhysicsBody();
+			Vec2 vec = this->currentLocationMap.find(index)->second;
+			if (cur->isDynamic()){
+				cur->setVelocity(vec);
+				index++;
+			}
+
+		}
+		this->end_free_time = clock();
+		this->freeze_time = (double)(this->end_free_time - this->begin_free_time) / CLOCKS_PER_SEC;
+		this->_drawVelocityLayer->freeze_time += this->freeze_time;
+		log("game free time:%f", this->freeze_time);
+	}
+}
+
 void GameLayer::updateVelocityText(float t)
 {
 	clock_t now = clock();
@@ -747,7 +932,6 @@ void GameLayer::recordVelocityCallBack(cocos2d::Ref* pSender)
 
 bool GameLayer::onPhysicsContactBegin(const cocos2d::PhysicsContact& contact){
 	log("enter game layer listener:===============");
-	clock_t collison_time = clock();
 	auto a = contact.getShapeA()->getBody();
 	auto b = contact.getShapeB()->getBody();
 	if (init_friction.size() > 0){
@@ -759,21 +943,6 @@ bool GameLayer::onPhysicsContactBegin(const cocos2d::PhysicsContact& contact){
 	else{
 		contact.getShapeA()->setFriction(0);
 		contact.getShapeB()->setFriction(0);
-	}
-	
-	log("tag 1:%f", contact.getShapeA()->getFriction());
-	auto duration = (double)(collison_time - _begin_move) / CLOCKS_PER_SEC;
-	if (b->isDynamic()){
-		Vec2 vec = b->getVelocity();
-		log("vel:(%f,%f)", vec.x, vec.y);
-		log("tag 1:%d", b->getTag());
-		//_drawVelocityLayer->drawVelocityLine(vec, duration, 0);
-	}
-	else{
-		Vec2 vec = a->getVelocity();
-		log("vel:(%f,%f)", vec.x, vec.y); 
-		log("tag 1:%d", b->getTag());
-		//_drawVelocityLayer->drawVelocityLine(vec, duration, 0);
 	}
 	return true;
 }
@@ -790,6 +959,38 @@ bool DrawVelocityLayer::init(){
 	_gestureBackgroundView->setPosition(Vec2(ZERO_POINT_X, 0));
 	addChild(_gestureBackgroundView);
 	_startDrawLineLocation = Vec2(ZERO_POINT_X, ZERO_POINT_Y);
+	this->InitLineColorMap();
+	Size visibleSize = Director::getInstance()->getVisibleSize();
+	Vec2 origin = Director::getInstance()->getVisibleOrigin();
+	/**
+	// input v_x
+	Vec2 raw_size = Vec2(67.5, 63.5);
+	_VxLabel = Label::create(TOOL_HINT_WELCOME, DEFAULT_FONT, 24, Size::ZERO, TextHAlignment::LEFT, TextVAlignment::CENTER);
+	_VxLabel->setPosition(Vec2(origin.x + raw_size.y / 2 + 4 * GAP,
+		origin.y + visibleSize.height - raw_size.x / 4 - GAP));
+	_VxLabel->setVisible(true);
+	this->addChild(_VxLabel);
+
+	// input v_y
+	_VyLabel = Label::create(TOOL_HINT_WELCOME, DEFAULT_FONT, 24, Size::ZERO, TextHAlignment::LEFT, TextVAlignment::CENTER);
+	_VyLabel->setPosition(Vec2(origin.x + raw_size.y / 2 + 10 * GAP,
+		origin.y + visibleSize.height - raw_size.x / 4 - GAP));
+	_VyLabel->setVisible(true);
+	this->addChild(_VyLabel);
+
+	*/
+	_VLabel = Label::create(TOOL_HINT_WELCOME, DEFAULT_FONT, 24, Size::ZERO, TextHAlignment::LEFT, TextVAlignment::CENTER);
+	_VLabel->setPosition(Vec2(ZERO_POINT_X + 60, 300));
+	_VLabel->setVisible(true);
+	_VLabel->setString("0 (m/s)");
+	this->addChild(_VLabel);
+
+	_TLabel = Label::create(TOOL_HINT_WELCOME, DEFAULT_FONT, 24, Size::ZERO, TextHAlignment::LEFT, TextVAlignment::CENTER);
+	_TLabel->setPosition(Vec2(300, ZERO_POINT_Y));
+	_TLabel->setVisible(true);
+	_TLabel->setString("0 (/s)");
+	this->addChild(_TLabel);
+
 	log("enter velocity layer init");
 	return true;
 }
@@ -797,6 +998,7 @@ bool DrawVelocityLayer::init(){
 void DrawVelocityLayer::onEnter(){
 	currentDrawLine = DrawableSprite::create();
 	this->addChild(currentDrawLine);
+
 	log("enter velocity layer");
 }
 
@@ -805,24 +1007,66 @@ void DrawVelocityLayer::onExit(){
 }
 
 void DrawVelocityLayer::drawVelocityLine(Vec2 velocity, double t, int index){
+	log("draw free time:%f", this->freeze_time);
+	t = t - this->freeze_time;
+	
+	log("draw free t:%f", t);
 	auto absolute_velocity = sqrt(pow(velocity.x, 2) + pow(velocity.y, 2));
 	auto value = _startDrawLineMap.find(index);
-	Vec2 currentLocation = Vec2(t * 10 + ZERO_POINT_X, absolute_velocity / 10 + ZERO_POINT_Y);
-	if (value != _startDrawLineMap.end()){
-		auto startDrawLineLocation = _startDrawLineMap.find(index)->second;
-		currentDrawLine->drawLine(startDrawLineLocation, currentLocation, currentDrawLine->getBrushColor());
-		_startDrawLineMap.erase(value);	
+	cocos2d::Color4F lineColor;
+	auto gravity = this->getScene()->getPhysicsWorld()->getGravity();
+	if (gravity == Vec2(0, 0)){
+
 	}
 	else{
-		int length = this->startDrawLocationList.size();
-		if (index < length)
-			currentDrawLine->drawLine(startDrawLocationList[index], currentLocation, currentDrawLine->getBrushColor());
-		else{
-			currentDrawLine->drawLine(startDrawLocationList[length - 1], currentLocation, currentDrawLine->getBrushColor());
+		if (index < this->colorTypeNum) {
+			lineColor = this->lineColorMap.find(index)->second;
 		}
+		else{
+			auto color_index = index % this->colorTypeNum;
+			lineColor = this->lineColorMap.find(color_index)->second;
+		}
+		Vec2 currentLocation = Vec2(t * 10 + ZERO_POINT_X, absolute_velocity / 10 + ZERO_POINT_Y);
+		auto label = DoubleToString(t) + " (/s)";
+		this->_TLabel->setString(label);
+		if (value != _startDrawLineMap.end()){
+			auto startDrawLineLocation = _startDrawLineMap.find(index)->second;
+			currentDrawLine->drawLine(startDrawLineLocation, currentLocation, lineColor);
+			_startDrawLineMap.erase(value);
+		}
+		else{
+			int length = this->startDrawLocationList.size();
+			if (index < length)
+				currentDrawLine->drawLine(startDrawLocationList[index], currentLocation, lineColor);
+			else{
+				currentDrawLine->drawLine(startDrawLocationList[length - 1], currentLocation, currentDrawLine->getBrushColor());
+			}
+		}
+		_startDrawLineMap[index] = currentLocation;
+		updateVLabel();
+		log("absolute_velocity:%f, time: %f", absolute_velocity / 10, t);
 	}
-	_startDrawLineMap[index] = currentLocation;
 	
-	log("absolute_velocity:%f, time: %f", absolute_velocity / 10, t);
 	//log("start location:%f,%f ", _startDrawLineLocation.x, _startDrawLineLocation.y);
+}
+
+void DrawVelocityLayer::updateVLabel(){
+	int length = _startDrawLineMap.size();
+	string velocity_str = "";
+	for (auto i = 0; i < length - 1; i++) {
+		velocity_str += DoubleToString((double)(_startDrawLineMap.find(i)->second.y - ZERO_POINT_Y)) + "; ";
+	}
+	velocity_str += DoubleToString((double)(_startDrawLineMap.find(length - 1)->second.y - ZERO_POINT_Y)) + " (m / s)";
+
+	this->_VLabel->setString(velocity_str);
+	this->_VLabel->setPosition(Vec2(ZERO_POINT_X + 24 * length * 1.8, 300));
+}
+void DrawVelocityLayer::InitLineColorMap(){
+	this->lineColorMap[0] = Color4F(1, 1, 1, 1);
+	this->lineColorMap[1] = Color4F(0, 1, 0, 1);
+	this->lineColorMap[2] = Color4F(0, 0, 1, 1);
+	this->lineColorMap[3] = Color4F(1, 0, 0, 1);
+	this->lineColorMap[4] = Color4F(0, 1, 1, 1);
+	this->lineColorMap[5] = Color4F(1, 0, 1, 1);
+	this->colorTypeNum = this->lineColorMap.size();
 }

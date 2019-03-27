@@ -90,7 +90,8 @@ PhysicsBody* makePhysicsBodyAsPolygon(DrawableSprite* drawableSprite)
 	float _xMin = rect.getMinX(), _xMax = rect.getMaxX(), _yMin = rect.getMinY(), _yMax = rect.getMaxY();
 
 	// set mass by rectangle area size
-	physicsBody->setMass((_xMax - _xMin)*(_yMax - _yMin));
+	//physicsBody->setMass((_xMax - _xMin)*(_yMax - _yMin));
+	physicsBody->setMass(10);
 	// set linear damping
 	physicsBody->setLinearDamping(0.0f);
 	// set physics body mask

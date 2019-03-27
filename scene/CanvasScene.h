@@ -266,17 +266,27 @@ public:
 
 	void InputVyEvent(Ref *pSender, cocos2d::ui::TextField::EventType type);
 
+	void InputFxEvent(Ref *pSender, cocos2d::ui::TextField::EventType type);
+
+	void InputFyEvent(Ref *pSender, cocos2d::ui::TextField::EventType type);
+
 	void InputFrictionEvent(Ref *pSender, cocos2d::ui::TextField::EventType type);
 
 	vector<string> split_string(string strtem, char a);
 
 	void change_input_to_array(std::string v_x, vector<double> &output_vector);
 
+	void updateTextFieldState(bool state) {
+		this->_VxField->setVisible(state);
+		this->_VyField->setVisible(state);
+	}
 	std::vector<double> init_v_x;
 	std::vector<double> init_v_y;
 	std::vector<double> init_friction;
-
-
+	std::vector<double> init_f_x;
+	std::vector<double> init_f_y;
+	cocos2d::ui::TextField* _VxField;
+	cocos2d::ui::TextField* _VyField;
 
 private:
 	cocos2d::EventListenerCustom*	_recognizeSuccessListener;	// recognize success listener
@@ -291,10 +301,11 @@ private:
 	cocos2d::MenuItemImage*			_menuStartDebug;			// start debug mode menu
 	
 	CanvasScene*					_canvasScene;				// parent scene	
-	cocos2d::ui::TextField* _VxField;
-	cocos2d::ui::TextField* _VyField;
+
 	cocos2d::ui::TextField* _FrictionField;
 
+	cocos2d::ui::TextField* _FxField;
+	cocos2d::ui::TextField* _FyField;
 };
 
 
@@ -349,17 +360,28 @@ public:
 	std::vector<double> init_v_x;
 	std::vector<double> init_v_y;
 	std::vector<double> init_friction;
+	std::vector<double> init_f_x;
+	std::vector<double> init_f_y;
 
+	void freePhysicsWorld();
+	void nofreePhysicsWorld();
 
 	void initVelocityForPhysicsBody();
+	void initForceForPhysicsBody();
 	clock_t  _begin_move;
+	std::map<int, cocos2d::Vec2> currentLocationMap;
+	double freeze_time = 0;
+	clock_t begin_free_time;
+	clock_t end_free_time;
+
+
 private:
 	std::list<DrawableSprite*>& _drawNodeList;			// current drawn nodes 
 	DrawSpriteResultMap&		_drawNodeResultMap;		// DrawableSprite-RecognizedSprite map
 	GenSpriteResultMap			_genSpriteResultMap;	// DrawableSprite-Sprite map, generated sprites, with physics body
 	PostCommandHandlerFactory	_postCmdHandlers;		// post-command handlers
 	DrawVelocityLayer           * _drawVelocityLayer;
-	
+	cocos2d::EventListenerKeyboard* _gamekeyboardListener;
 };
 
 
@@ -395,6 +417,19 @@ public:
 
 	std::vector<cocos2d::Vec2> startDrawLocationList;
 
+	void InitLineColorMap();
+	double freeze_time = 0;
+
+	std::string DoubleToString(double value)
+	 {
+		std::ostringstream stream;
+		value = std::round(value * 100);
+		auto real_value = value / 100;
+		 stream << real_value;
+		 return stream.str();
+	}
+
+	void updateVLabel();
 private:
 	double t;
 	bool isDrawingLine;
@@ -403,6 +438,12 @@ private:
 	DrawableSprite *currentDrawLine;
 	cocos2d::Vec2 _startDrawLineLocation;
 	std::map<int, cocos2d::Vec2> _startDrawLineMap;
+	std::map<int, cocos2d::Color4F> lineColorMap;
+	int colorTypeNum;
+	//cocos2d::Label*					_VxLabel;
+	//cocos2d::Label* _VyLabel;
+	cocos2d::Label*  _VLabel;
+	cocos2d::Label* _TLabel;
 };
 
 template <class Type>

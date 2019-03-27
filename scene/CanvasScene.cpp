@@ -844,8 +844,8 @@ void GameLayer::initForceForPhysicsBody(){
 				point = Vec2(0, 0);
 			}
 
-			point.x = point.x * 10;
-			point.y = point.y * 10;
+			point.x = point.x * 100;
+			point.y = point.y * 100;
 			cur->applyForce(Vec2(point));
 			index++;
 		}
@@ -867,6 +867,7 @@ void GameLayer::freePhysicsWorld(){
 			if (cur->isDynamic()){
 				cur->setVelocity(Vec2(0, 0));
 				cur->setAngularVelocity(0);
+				cur->resetForces();
 				index++;
 			}
 		}
@@ -890,8 +891,8 @@ void GameLayer::nofreePhysicsWorld() {
 				cur->setVelocity(vec);
 				index++;
 			}
-
 		}
+		initForceForPhysicsBody();
 		this->end_free_time = clock();
 		this->freeze_time = (double)(this->end_free_time - this->begin_free_time) / CLOCKS_PER_SEC;
 		this->_drawVelocityLayer->freeze_time += this->freeze_time;
@@ -1007,10 +1008,7 @@ void DrawVelocityLayer::onExit(){
 }
 
 void DrawVelocityLayer::drawVelocityLine(Vec2 velocity, double t, int index){
-	log("draw free time:%f", this->freeze_time);
 	t = t - this->freeze_time;
-	
-	log("draw free t:%f", t);
 	auto absolute_velocity = sqrt(pow(velocity.x, 2) + pow(velocity.y, 2));
 	auto value = _startDrawLineMap.find(index);
 	cocos2d::Color4F lineColor;

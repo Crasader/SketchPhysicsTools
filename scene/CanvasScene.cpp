@@ -113,6 +113,8 @@ void CanvasScene::startSimulate()
 	if (this->_debugDraw){ _physicsWorld->setDebugDrawMask(PhysicsWorld::DEBUGDRAW_ALL); }
 	_gameLayer->setParent(nullptr);
 	this->addChild(_gameLayer);
+	// start clock
+	_gameLayer->_begin_move = clock();
 }
 
 void CanvasScene::stopSimulate()
@@ -617,8 +619,6 @@ bool GameLayer::init()
 		if (!cmdh._Empty()) cmdh(*rs, _drawNodeList, this, &_genSpriteResultMap);
 	}
 
-	_begin_move = clock();
-	log("init time:%f", (double)_begin_move);
 	_drawVelocityLayer->setVisible(true);
 
 	// add concat listener
@@ -675,36 +675,41 @@ void GameLayer::initVelocityForPhysicsBody(){
 	{
 		auto sprite = i->second;
 		auto cur = sprite->getPhysicsBody();
-
+		Vec2 point;
 		if (cur->isDynamic()) {
-
 			int x_size = init_v_x.size();
 			int y_size = init_v_y.size();
 			log("x_size: %d, y_size:%d", x_size, y_size);
 			if (x_size > 0 && y_size > 0){
 				if (index < x_size && index < y_size){
-					cur->setVelocity(Vec2(init_v_x.at(index), 0 - init_v_y.at(index)));
+					point = Vec2(init_v_x.at(index), 0 - init_v_y.at(index));
 				}
 				else if (index <x_size && index >= y_size){
-					cur->setVelocity(Vec2(init_v_x.at(index),0 - init_v_y.at(y_size - 1)));
+					point = Vec2(init_v_x.at(index), 0 - init_v_y.at(y_size - 1));
 				}
 				else if (index >= x_size && index < y_size){
-					cur->setVelocity(Vec2(init_v_x.at(x_size - 1), 0 - init_v_y.at(index)));
+					point = Vec2(init_v_x.at(x_size - 1), 0 - init_v_y.at(index));
 				}
 				else{
-					cur->setVelocity(Vec2(init_v_x.at(x_size - 1), 0 - init_v_y.at(y_size - 1)));
+					 point = Vec2(init_v_x.at(x_size - 1), 0 - init_v_y.at(y_size - 1));
 				}
 			}
 			else if (x_size == 0 && y_size > 0){
-				cur->setVelocity(Vec2(0,0 - init_v_y.at(y_size - 1)));
+				point = Vec2(0, 0 - init_v_y.at(y_size - 1));
 			}
 			else if (y_size == 0 && x_size > 0){
-				cur->setVelocity(Vec2(init_v_x.at(index), 0));
+				point = Vec2(init_v_x.at(index), 0);
 			}
 			else {
-				cur->setVelocity(Vec2(0, 0));
+				point = Vec2(0, 0);
 			}
 			
+			point.x = point.x * 10;
+			point.y = point.y * 10;
+			cur->setVelocity(Vec2(point));
+			auto absolute_point = Vec2(ZERO_POINT_X, sqrt(pow(point.x / 10, 2) + pow(point.y / 10, 2)) + ZERO_POINT_Y);
+			
+			_drawVelocityLayer->startDrawLocationList.push_back(absolute_point);
 			index++;
 		}
 	}
@@ -802,17 +807,22 @@ void DrawVelocityLayer::onExit(){
 void DrawVelocityLayer::drawVelocityLine(Vec2 velocity, double t, int index){
 	auto absolute_velocity = sqrt(pow(velocity.x, 2) + pow(velocity.y, 2));
 	auto value = _startDrawLineMap.find(index);
-	Vec2 currentLocation = Vec2(t * 10 + ZERO_POINT_X, absolute_velocity + ZERO_POINT_Y);
+	Vec2 currentLocation = Vec2(t * 10 + ZERO_POINT_X, absolute_velocity / 10 + ZERO_POINT_Y);
 	if (value != _startDrawLineMap.end()){
 		auto startDrawLineLocation = _startDrawLineMap.find(index)->second;
 		currentDrawLine->drawLine(startDrawLineLocation, currentLocation, currentDrawLine->getBrushColor());
 		_startDrawLineMap.erase(value);	
 	}
 	else{
-		currentDrawLine->drawLine(_startDrawLineLocation, currentLocation, currentDrawLine->getBrushColor());
+		int length = this->startDrawLocationList.size();
+		if (index < length)
+			currentDrawLine->drawLine(startDrawLocationList[index], currentLocation, currentDrawLine->getBrushColor());
+		else{
+			currentDrawLine->drawLine(startDrawLocationList[length - 1], currentLocation, currentDrawLine->getBrushColor());
+		}
 	}
 	_startDrawLineMap[index] = currentLocation;
 	
-	log("absolute_velocity:%f, time: %f", absolute_velocity, t * 10);
+	log("absolute_velocity:%f, time: %f", absolute_velocity / 10, t);
 	//log("start location:%f,%f ", _startDrawLineLocation.x, _startDrawLineLocation.y);
 }

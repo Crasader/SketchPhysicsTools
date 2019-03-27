@@ -350,15 +350,16 @@ public:
 	std::vector<double> init_v_y;
 	std::vector<double> init_friction;
 
-	void initVelocityForPhysicsBody();
 
+	void initVelocityForPhysicsBody();
+	clock_t  _begin_move;
 private:
 	std::list<DrawableSprite*>& _drawNodeList;			// current drawn nodes 
 	DrawSpriteResultMap&		_drawNodeResultMap;		// DrawableSprite-RecognizedSprite map
 	GenSpriteResultMap			_genSpriteResultMap;	// DrawableSprite-Sprite map, generated sprites, with physics body
 	PostCommandHandlerFactory	_postCmdHandlers;		// post-command handlers
 	DrawVelocityLayer           * _drawVelocityLayer;
-	clock_t  _begin_move;
+	
 };
 
 
@@ -392,6 +393,7 @@ public:
 
 	CREATE_FUNC(DrawVelocityLayer);
 
+	std::vector<cocos2d::Vec2> startDrawLocationList;
 
 private:
 	double t;

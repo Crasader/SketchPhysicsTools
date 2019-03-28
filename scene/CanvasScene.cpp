@@ -734,6 +734,15 @@ void GameLayer::onEnter()
 		else if (EventKeyboard::KeyCode::KEY_D == keyCode){
 			this->nofreePhysicsWorld();
 		}
+		else if (EventKeyboard::KeyCode::KEY_G == keyCode){
+			auto gravity = this->getScene()->getPhysicsWorld()->getGravity();
+			if (gravity == Vec2(0, 0)){
+				this->getScene()->getPhysicsWorld()->setGravity(GRAVITY);
+			}
+			else{
+				this->getScene()->getPhysicsWorld()->setGravity(Vec2(0, 0));
+			}
+		}
 	};
 	_eventDispatcher->addEventListenerWithSceneGraphPriority(_gamekeyboardListener, this);
 	this->schedule(schedule_selector(GameLayer::updateVelocityText), 0.04);
